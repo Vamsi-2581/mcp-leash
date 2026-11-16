@@ -83,7 +83,7 @@ def test_condition_holds(condition: dict[str, Any], arguments: Any, expected: bo
     assert condition_holds(cond(**condition), arguments) is expected
 
 
-@pytest.mark.parametrize("operator", ["starts_with", "matches"])
+@pytest.mark.parametrize("operator", ["starts_with", "matches, "not_matches""])
 @pytest.mark.parametrize("value", [1, None, ["x", 1], [["x"]], {"x": "y"}, True])
 def test_string_operators_reject_non_strings(operator: str, value: Any) -> None:
     with pytest.raises(IndeterminateError, match="needs a string or a list of strings"):
@@ -98,6 +98,10 @@ def test_string_operators_reject_non_strings(operator: str, value: Any) -> None:
         ({"starts_with": "x"}, ["a", "b"], False, False),
         ({"matches": "^-"}, ["-v", "--all"], True, True),
         ({"matches": "^-"}, ["status", "-v"], False, True),
+        ({"not_matches": "^-"}, ["a", "b"], True, True),
+        ({"not_matches": "^-"}, ["a", "-v"], False, True),
+        ({"not_matches": "^-"}, ["-a", "-v"], False, False),
+        ({"not_matches": "."}, [], False, False),
         ({"matches": "."}, [], False, False),
     ],
 )
