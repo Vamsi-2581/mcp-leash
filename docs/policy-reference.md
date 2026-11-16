@@ -218,6 +218,7 @@ Patterns run on text the agent controls. Avoid nested quantifiers such as `(a+)+
 
 `not_matches` is the inverse of `matches`: the condition holds when `re.search` finds no match. It uses the same Python regular-expression syntax, validation, anchoring and performance considerations.
 
+Note: A missing argument makes the condition evaluate to `false`, so a `deny` rule with `not_matches` does not fire when the argument is absent.
 #### Lists of strings
 
 `starts_with`, `matches` and `not_matches` also take an argument that is a list of strings, and check every item. An allow rule needs every item to pass and a deny rule needs only one, as with lists of paths under [`within`](#when-a-value-can-be-read-more-than-one-way); an empty list never matches. With list indexes in `arg`, this covers tools that take a command as a list, such as the shell server in [`policies/shell.yaml`](https://github.com/cuong404vn/mcp-leash/blob/main/policies/shell.yaml):
