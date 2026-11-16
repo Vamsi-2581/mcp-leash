@@ -52,7 +52,9 @@ class Condition(_Strict):
                 f"condition on {self.arg!r} needs exactly one operator "
                 f"({', '.join(OPERATORS)}); found {found}"
             )
-        return self
+        if self.arg == "*" and self.not_matches is not None:
+            raise ValueError("not_matches cannot be used with arg: '*'; use a deny rule with matches instead")
+            return self
 
     @field_validator("matches", "not_matches")
     @classmethod
