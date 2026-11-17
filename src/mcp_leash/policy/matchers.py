@@ -146,9 +146,9 @@ def _strings(value: Any, condition: Condition) -> list[str]:
 def apply_operator(condition: Condition, value: Any, *, require_all: bool = True) -> bool:
     """Apply the condition's operator to one argument value.
 
-    ``starts_with``, ``istarts_with``, ``matches`` and ``within`` also take a list of strings
-    and check each item; ``require_all`` decides how the results combine
-    (see :func:`condition_holds`).
+    ``starts_with``, ``istarts_with``, ``ends_with``, ``matches`` and ``within``
+    also take a list of strings and check each item; ``require_all`` decides
+    how the results combine (see :func:`condition_holds`).
     """
     if condition.equals is not None:
         return json_equal(value, condition.equals)
@@ -163,6 +163,8 @@ def apply_operator(condition: Condition, value: Any, *, require_all: bool = True
     elif (prefix := condition.istarts_with) is not None:
         folded_prefix = prefix.casefold()
         results = (s.casefold().startswith(folded_prefix) for s in strings)
+    elif (suffix := condition.ends_with) is not None:
+        results = (s.endswith(suffix) for s in strings)
     elif (pattern := condition.matches) is not None:
         results = (re.search(pattern, s) is not None for s in strings)
     elif (directories := condition.within) is not None:

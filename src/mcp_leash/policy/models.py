@@ -20,7 +20,16 @@ from pydantic import (
 Scalar = StrictBool | StrictInt | StrictFloat | StrictStr
 Action = Literal["allow", "deny"]
 
-OPERATORS = ("equals", "not_equals", "in", "starts_with", "istarts_with", "matches", "within")
+OPERATORS = (
+    "equals",
+    "not_equals",
+    "in",
+    "starts_with",
+    "istarts_with",
+    "ends_with",
+    "matches",
+    "within",
+)
 DEFAULT_REDACT_KEYS = ["token", "password", "api_key", "authorization", "secret"]
 RESERVED_RULE_IDS = ("default", "invalid-request")
 
@@ -40,6 +49,7 @@ class Condition(_Strict):
     in_: list[Scalar] | None = Field(default=None, alias="in")
     starts_with: StrictStr | None = None
     istarts_with: StrictStr | None = None
+    ends_with: StrictStr | None = None
     matches: StrictStr | None = None
     within: list[StrictStr] | None = Field(default=None, min_length=1)
 
