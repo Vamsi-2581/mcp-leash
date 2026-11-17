@@ -70,6 +70,10 @@ def rule(body: str) -> str:
             "NOPE",
         ),
         (
+            rule("    action: deny\n    when:\n      - arg: p\n        istarts_with: '${NOPE}'\n"),
+            "NOPE",
+        ),
+        (
             rule("    action: deny\n    when:\n      - arg: p\n        ends_with: '${NOPE}'\n"),
             "NOPE",
         ),

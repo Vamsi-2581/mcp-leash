@@ -84,7 +84,7 @@ def _expand_condition(
             raise PolicyError(
                 _format_located_error(str(exc), (*path, "within"), locations)
             ) from exc
-    for name in ("equals", "not_equals", "starts_with", "ends_with"):
+    for name in ("equals", "not_equals", "starts_with", "istarts_with", "ends_with"):
         if getattr(condition, name) is not None:
             try:
                 update[name] = expand(getattr(condition, name))
