@@ -51,9 +51,13 @@ def cond(**fields: Any) -> Condition:
         ({"arg": "a", "in": ["x", 2, True]}, {"a": "x"}, True),
         ({"arg": "a", "in": ["x", 2]}, {"a": True}, False),
         ({"arg": "a", "in": []}, {"a": "x"}, False),
-        # starts_with / matches
+        # starts_with / istarts_with / ends_with / matches
         ({"arg": "a", "starts_with": "/tmp/"}, {"a": "/tmp/x"}, True),
         ({"arg": "a", "starts_with": "/tmp/"}, {"a": "/tmpx"}, False),
+        ({"arg": "a", "istarts_with": "/TMP/"}, {"a": "/tmp/x"}, True),
+        ({"arg": "a", "istarts_with": "STRASSE"}, {"a": "straße"}, True),
+        ({"arg": "a", "ends_with": ".pem"}, {"a": "key.pem"}, True),
+        ({"arg": "a", "ends_with": ".pem"}, {"a": "key.pem.bak"}, False),
         ({"arg": "a", "matches": "^rm\\b"}, {"a": "rm -rf /"}, True),
         ({"arg": "a", "matches": "(?i)secret"}, {"a": "my SECRET"}, True),
         ({"arg": "a", "matches": "^ls$"}, {"a": "ls -la"}, False),
@@ -61,6 +65,8 @@ def cond(**fields: Any) -> Condition:
         ({"arg": "a", "equals": "x"}, {}, False),
         ({"arg": "a", "not_equals": "x"}, {}, False),
         ({"arg": "a", "in": ["x"]}, {}, False),
+        ({"arg": "a", "starts_with": "x"}, {}, False),
+        ({"arg": "a", "ends_with": ".pem"}, {}, False),
         ({"arg": "a", "matches": "."}, {"b": "x"}, False),
         ({"arg": "a", "within": ["/"]}, {}, False),
         # nested paths
@@ -73,6 +79,7 @@ def cond(**fields: Any) -> Condition:
         ({"arg": "*", "matches": "key"}, {"key": "x", "a": {"key": 1}}, False),
         ({"arg": "*", "equals": 1}, {"a": 1}, False),
         ({"arg": "*", "starts_with": "x"}, {"a": [1, None, True, "xyz"]}, True),
+        ({"arg": "*", "ends_with": ".pem"}, {"a": [1, None, True, "cert.pem"]}, True),
         ({"arg": "*", "matches": "."}, {}, False),
     ],
 )
@@ -80,7 +87,7 @@ def test_condition_holds(condition: dict[str, Any], arguments: Any, expected: bo
     assert condition_holds(cond(**condition), arguments) is expected
 
 
-@pytest.mark.parametrize("operator", ["starts_with", "matches"])
+@pytest.mark.parametrize("operator", ["starts_with", "istarts_with", "ends_with", "matches"])
 @pytest.mark.parametrize("value", [1, None, ["x", 1], [["x"]], {"x": "y"}, True])
 def test_string_operators_reject_non_strings(operator: str, value: Any) -> None:
     with pytest.raises(IndeterminateError, match="needs a string or a list of strings"):
@@ -93,6 +100,13 @@ def test_string_operators_reject_non_strings(operator: str, value: Any) -> None:
         ({"starts_with": "x"}, ["xa", "xb"], True, True),
         ({"starts_with": "x"}, ["xa", "b"], False, True),
         ({"starts_with": "x"}, ["a", "b"], False, False),
+        ({"istarts_with": "X"}, ["xa", "xb"], True, True),
+        ({"istarts_with": "X"}, ["xa", "b"], False, True),
+        ({"istarts_with": "x"}, ["a", "b"], False, False),
+        ({"ends_with": ".pem"}, ["cert.pem", "key.pem"], True, True),
+        ({"ends_with": ".pem"}, ["cert.pem", "key.pub"], False, True),
+        ({"ends_with": ".pem"}, ["cert.crt", "key.pub"], False, False),
+        ({"ends_with": ".pem"}, [], False, False),
         ({"matches": "^-"}, ["-v", "--all"], True, True),
         ({"matches": "^-"}, ["status", "-v"], False, True),
         ({"matches": "."}, [], False, False),
@@ -104,6 +118,24 @@ def test_string_operators_check_every_item_of_a_list(
     c = cond(arg="a", **condition)
     assert condition_holds(c, {"a": value}, require_all=True) is allow_rule
     assert condition_holds(c, {"a": value}, require_all=False) is deny_rule
+
+
+@pytest.mark.parametrize(
+    ("condition", "arguments", "expected"),
+    [
+        ({"arg": "a", "istarts_with": "X"}, {"a": "xylophone"}, True),
+        ({"arg": "a", "istarts_with": "strasse"}, {"a": "Straße"}, True),
+        ({"arg": "a", "istarts_with": "x"}, {"a": "Yx"}, False),
+        ({"arg": "missing", "istarts_with": "x"}, {}, False),
+        ({"arg": "*", "istarts_with": "API"}, {"nested": ["api-key"]}, True),
+    ],
+)
+def test_istarts_with(condition: dict[str, Any], arguments: Any, expected: bool) -> None:
+    assert condition_holds(cond(**condition), arguments) is expected
+
+
+def test_istarts_with_empty_list_never_matches() -> None:
+    assert not condition_holds(cond(arg="a", istarts_with="x"), {"a": []})
 
 
 @pytest.mark.parametrize(
