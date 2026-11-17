@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Add the `istarts_with` policy operator for Unicode case-insensitive string prefixes.
 - `ends_with` condition operator: checks whether a string argument or each item in a list of strings ends with the given suffix.
+- `mcp-leash run --log-format json` to emit stderr diagnostics as one JSON object per line; the default remains readable text.
 
 ### Changed
 
