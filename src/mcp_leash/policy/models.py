@@ -28,7 +28,7 @@ OPERATORS = (
     "istarts_with",
     "ends_with",
     "matches",
-    "not_matches",  
+    "not_matches",
     "within",
 )
 DEFAULT_REDACT_KEYS = ["token", "password", "api_key", "authorization", "secret"]
@@ -65,7 +65,9 @@ class Condition(_Strict):
                 f"({', '.join(OPERATORS)}); found {found}"
             )
         if self.arg == "*" and self.not_matches is not None:
-            raise ValueError("not_matches cannot be used with arg: '*'; use a deny rule with matches instead")
+            raise ValueError(
+                "not_matches cannot be used with arg: '*'; use a deny rule with matches instead"
+            )
         return self
 
     @field_validator("matches", "not_matches")

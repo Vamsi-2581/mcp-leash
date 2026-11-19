@@ -242,7 +242,7 @@ Note: A missing argument makes the condition evaluate to `false`, so a `deny` ru
 
 #### Lists of strings
 
-`starts_with`, `istarts_with`, `ends_with`, `not_matches` and `matches` also take an argument that is a list of strings, and check every item. An allow rule needs every item to pass and a deny rule needs only one, as with lists of paths under [`within`](#when-a-value-can-be-read-more-than-one-way); an empty list never matches. With list indexes in `arg`, this covers tools that take a command as a list, such as the shell server in [`policies/shell.yaml`](https://github.com/cuong404vn/mcp-leash/blob/main/policies/shell.yaml):
+`starts_with`, `istarts_with`, `ends_with`, `matches` and `not_matches` also take an argument that is a list of strings, and check every item. An allow rule needs every item to pass and a deny rule needs only one, as with lists of paths under [`within`](#when-a-value-can-be-read-more-than-one-way); an empty list never matches. With list indexes in `arg`, this covers tools that take a command as a list, such as the shell server in [`policies/shell.yaml`](https://github.com/cuong404vn/mcp-leash/blob/main/policies/shell.yaml):
 
 ```yaml
 - id: no-chaining
@@ -302,7 +302,7 @@ So `read_multiple_files` with one path outside the project does not match an all
 
 When a condition cannot be evaluated with certainty, the call is denied by the rule being checked, whatever that rule's action is. The reason starts with `Could not evaluate the policy:`. This happens when:
 
-- `starts_with`, `istarts_with`, `ends_with`  `matches` or `not_matches` meets a value that is neither a string nor a list of strings (for example a number, an object, or a list that holds one);
+- `starts_with`, `istarts_with`, `ends_with`, `matches` or `not_matches` meets a value that is neither a string nor a list of strings (for example a number, an object, or a list that holds one);
 - `within` meets a value that is neither a string nor a list of strings (for example a number, an object, or a list that holds one);
 - a path contains a NUL byte or cannot be resolved.
 

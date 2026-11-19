@@ -47,7 +47,10 @@ def rule(body: str) -> str:
             ),
             "invalid regular",
         ),
-        (rule("    action: allow\n    when:\n      - arg: '*'\n        not_matches: x\n"), "use a deny rule with matches instead"),
+        (
+            rule("    action: allow\n    when:\n      - arg: '*'\n        not_matches: x\n"),
+            "use a deny rule with matches instead",
+        ),
         (rule("    action: deny\n    when:\n      - arg: a\n        equals: [1]\n"), "equals"),
         (rule("    action: deny\n    when:\n      - arg: a\n        within: []\n"), "within"),
         (
