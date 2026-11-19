@@ -54,7 +54,7 @@ class Condition(_Strict):
             )
         if self.arg == "*" and self.not_matches is not None:
             raise ValueError("not_matches cannot be used with arg: '*'; use a deny rule with matches instead")
-            return self
+        return self
 
     @field_validator("matches", "not_matches")
     @classmethod
