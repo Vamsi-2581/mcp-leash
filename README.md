@@ -96,6 +96,13 @@ If the client reports that it cannot find `mcp-leash` (desktop apps, especially 
 
 Ready-to-edit files: [`examples/claude_desktop_config.json`](https://github.com/cuong404vn/mcp-leash/blob/main/examples/claude_desktop_config.json) and [`examples/cursor_mcp.json`](https://github.com/cuong404vn/mcp-leash/blob/main/examples/cursor_mcp.json).
 
+Other clients have their own config format. Replace the placeholder paths before you save. These examples follow each client's documentation but have not been tested with the clients yet:
+
+- **VS Code:** [`examples/vscode_mcp.json`](https://github.com/cuong404vn/mcp-leash/blob/main/examples/vscode_mcp.json): copy the `servers` object into `.vscode/mcp.json` in the workspace, or into your user MCP config.
+- **Windsurf:** [`examples/windsurf_mcp_config.json`](https://github.com/cuong404vn/mcp-leash/blob/main/examples/windsurf_mcp_config.json): merge the `mcpServers` entry into `~/.codeium/windsurf/mcp_config.json`.
+- **Zed:** [`examples/zed_settings.json`](https://github.com/cuong404vn/mcp-leash/blob/main/examples/zed_settings.json): merge the `context_servers` entry into your Zed settings, which the `zed: open settings file` command opens.
+- **Claude Code:** [`examples/claude_code_mcp.json`](https://github.com/cuong404vn/mcp-leash/blob/main/examples/claude_code_mcp.json): save it as `.mcp.json` at the project root.
+
 **3. See a blocked call.** Restart the client and ask the agent to delete a file in the project. It gets the "Blocked by mcp-leash" message above, and the audit log (`~/.mcp-leash/audit.jsonl` with the templates) shows the decision. To test a policy without a client:
 
 ```bash
@@ -143,15 +150,17 @@ rules:
         within: ['${PROJECT_DIR}']
 ```
 
-Conditions support `equals`, `not_equals`, `in`, `starts_with`, `matches` (regex) and `within` (path containment that resolves `..` and symlinks). Every field and operator is described in the [policy reference](https://github.com/cuong404vn/mcp-leash/blob/main/docs/policy-reference.md).
+Conditions support `equals`, `not_equals`, `in`, `starts_with`, `istarts_with` (Unicode case-insensitive prefix), `ends_with`, `matches` (regex) and `within` (path containment that resolves `..` and symlinks). Every field and operator is described in the [policy reference](https://github.com/cuong404vn/mcp-leash/blob/main/docs/policy-reference.md).
 
 | Command | Purpose |
 | --- | --- |
-| `mcp-leash run --policy FILE [--project-dir DIR] [--dry-run] -- CMD [ARGS...]` | Start the proxy and launch the real server as `CMD` |
+| `mcp-leash run --policy FILE [--project-dir DIR] [--dry-run] [--log-format text\|json] -- CMD [ARGS...]` | Start the proxy and launch the real server as `CMD` |
 | `mcp-leash validate FILE` | Check a policy file. Exit 0 if valid, 2 if not |
 | `mcp-leash check FILE --tool NAME --args JSON` | Evaluate one call offline and print the decision |
 | `mcp-leash init [--template readonly\|project]` | Write a starter policy to `mcp-leash.yaml` |
 | `mcp-leash suggest LOG [--policy FILE] [--project-dir DIR]` | Print a policy that allows the calls no rule decided in an audit log |
+
+`run` diagnostics go to stderr as readable text by default. Pass `--log-format json` to emit one JSON object per diagnostic line; stdout remains reserved for MCP protocol messages.
 
 ## How it works
 

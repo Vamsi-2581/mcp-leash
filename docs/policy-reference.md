@@ -167,6 +167,8 @@ Quote `'*'` in YAML, because a bare `*` starts an alias.
 | `not_equals` | string, number or boolean | The value exists and is not equal. |
 | `in` | list of strings, numbers or booleans | The value equals one of the items. |
 | `starts_with` | string | The value is a string, or a list of strings, with this prefix. |
+| `istarts_with` | string | The value is a string, or a list of strings, with this prefix after Unicode case folding. |
+| `ends_with` | string | The value is a string, or a list of strings, with this suffix. |
 | `matches` | regular expression | Python `re.search` finds the pattern in the string value, or in the items of a list of strings. |
 | `not_matches` | regular expression | Python `re.search` does not find the pattern in the string value, or in any item of a list of strings. |
 | `within` | non-empty list of directories | The value is a path, or a list of paths, inside the directories. |
@@ -196,6 +198,24 @@ Comparison is by JSON type: `1` equals `1.0`, but `1` does not equal `true` or `
   starts_with: 'https://api.github.com/'
 ```
 
+#### `istarts_with`
+
+```yaml
+- arg: command.0
+  istarts_with: git
+```
+
+Like `starts_with`, this accepts a string or a list of strings. Matching uses Python's Unicode `casefold()` on both the value and prefix; allow rules require every list item to match, while deny rules need only one. An empty list never matches.
+
+#### `ends_with`
+
+```yaml
+- arg: path
+  ends_with: '.pem'
+```
+
+Like `starts_with`, this accepts a string or a list of strings and compares exactly. On Windows, `key.pem.`, `key.pem::$DATA` and `KEY.PEM` all open `key.pem`, so a deny rule on file names should use `matches` with a pattern that allows for those forms, such as `'(?i)\.pem[. ]*(:.*)?$'`.
+
 #### `matches`
 
 ```yaml
@@ -222,7 +242,7 @@ Note: A missing argument makes the condition evaluate to `false`, so a `deny` ru
 
 #### Lists of strings
 
-`starts_with`, `matches` and `not_matches` also take an argument that is a list of strings, and check every item. An allow rule needs every item to pass and a deny rule needs only one, as with lists of paths under [`within`](#when-a-value-can-be-read-more-than-one-way); an empty list never matches. With list indexes in `arg`, this covers tools that take a command as a list, such as the shell server in [`policies/shell.yaml`](https://github.com/cuong404vn/mcp-leash/blob/main/policies/shell.yaml):
+`starts_with`, `istarts_with`, `ends_with`, `not_matches` and `matches` also take an argument that is a list of strings, and check every item. An allow rule needs every item to pass and a deny rule needs only one, as with lists of paths under [`within`](#when-a-value-can-be-read-more-than-one-way); an empty list never matches. With list indexes in `arg`, this covers tools that take a command as a list, such as the shell server in [`policies/shell.yaml`](https://github.com/cuong404vn/mcp-leash/blob/main/policies/shell.yaml):
 
 ```yaml
 - id: no-chaining
@@ -282,7 +302,7 @@ So `read_multiple_files` with one path outside the project does not match an all
 
 When a condition cannot be evaluated with certainty, the call is denied by the rule being checked, whatever that rule's action is. The reason starts with `Could not evaluate the policy:`. This happens when:
 
-- `starts_with`, `matches` or `not_matches` meets a value that is neither a string nor a list of strings (for example a number, an object, or a list that holds one);
+- `starts_with`, `istarts_with`, `ends_with`  `matches` or `not_matches` meets a value that is neither a string nor a list of strings (for example a number, an object, or a list that holds one);
 - `within` meets a value that is neither a string nor a list of strings (for example a number, an object, or a list that holds one);
 - a path contains a NUL byte or cannot be resolved.
 
@@ -291,7 +311,7 @@ When a condition cannot be evaluated with certainty, the call is denied by the r
 `${NAME}` is replaced when the policy loads, in these places:
 
 - `within` directories and `audit.path` (which also expand `~`);
-- string operands of `equals`, `not_equals`, `in` and `starts_with`.
+- string operands of `equals`, `not_equals`, `in`, `starts_with`, `istarts_with` and `ends_with`.
 
 It is not replaced in `matches` or `not_matches` patterns, where `$` and `{` are regex syntax, nor in `id`, `tools` or `reason`.
 
@@ -355,13 +375,13 @@ Redaction applies to the log only. The server receives the arguments unchanged.
 
 | Command | Exit code |
 | --- | --- |
-| `mcp-leash run --policy FILE [--project-dir DIR] [--dry-run] -- CMD [ARGS...]` | The server's exit code; `128 + N` if the server was killed by signal `N`; `2` for an invalid policy or an audit log that cannot be opened; `127` if `CMD` cannot be started. |
+| `mcp-leash run --policy FILE [--project-dir DIR] [--dry-run] [--log-format text\|json] -- CMD [ARGS...]` | The server's exit code; `128 + N` if the server was killed by signal `N`; `2` for an invalid policy or an audit log that cannot be opened; `127` if `CMD` cannot be started. |
 | `mcp-leash validate FILE` | `0` if valid, `2` if not. |
 | `mcp-leash check FILE --tool NAME [--args JSON] [--project-dir DIR]` | `0` after printing the decision; `2` for an invalid policy or arguments that are not a JSON object. |
 | `mcp-leash init [--template readonly\|project] [--force]` | `0` after writing `mcp-leash.yaml`; `1` if the file exists and `--force` is not given. |
 | `mcp-leash suggest LOG [--policy FILE] [--project-dir DIR]` | `0` after printing a policy; `2` if `LOG` cannot be read or `FILE` is invalid. |
 
-`run` writes only protocol messages to stdout. Diagnostics, including one line per blocked call, go to stderr, which most MCP clients keep in their server logs. When the client closes stdin, `run` closes the server's stdin and waits for the server to finish. On SIGINT or SIGTERM it terminates the server. It exits as soon as the server exits.
+`run` writes only protocol messages to stdout. Diagnostics, including one line per blocked call, go to stderr, which most MCP clients keep in their server logs. They are readable text by default; `--log-format json` writes each as a JSON object with `level` and `message` fields. The format option does not affect the JSON Lines audit log. Errors that stop `run` before the server starts, such as an invalid policy or an audit log that cannot be opened, are plain text in both formats. When the client closes stdin, `run` closes the server's stdin and waits for the server to finish. On SIGINT or SIGTERM it terminates the server. It exits as soon as the server exits.
 
 ### `suggest`
 

@@ -23,6 +23,10 @@ def rule(body: str) -> str:
         ("version: 1\ndefault: block\n", "default"),
         ("version: 1\n", "default"),
         (MINIMAL + "unknown_key: 1\n", "unknown_key"),
+        (
+            rule("    action: deny\n    when:\n      - arg: a\n        unknown_operator: x\n"),
+            "unknown_operator",
+        ),
         (MINIMAL + "hide_denied_tools: 'yes'\n", "hide_denied_tools"),
         (rule("    action: maybe\n"), "action"),
         (rule("    action: deny\n    when:\n      - arg: a\n        contains: x\n"), "contains"),
@@ -72,6 +76,14 @@ def rule(body: str) -> str:
             rule("    action: deny\n    when:\n      - arg: p\n        starts_with: '${NOPE}'\n"),
             "NOPE",
         ),
+        (
+            rule("    action: deny\n    when:\n      - arg: p\n        istarts_with: '${NOPE}'\n"),
+            "NOPE",
+        ),
+        (
+            rule("    action: deny\n    when:\n      - arg: p\n        ends_with: '${NOPE}'\n"),
+            "NOPE",
+        ),
         (MINIMAL + "rules:\n  - id: r\n    tools: 't'\n    action: deny\n", "tools"),
         (MINIMAL + "rules:\n  - id: r\n    tools: []\n    action: deny\n", "tools"),
         (MINIMAL + "rules:\n  - tools: ['t']\n    action: deny\n", "id"),
@@ -91,6 +103,27 @@ def rule(body: str) -> str:
 def test_invalid_policies(text: str, error: str) -> None:
     with pytest.raises(PolicyError, match=error):
         parse_policy(text, env={"EMPTY": ""})
+
+
+@pytest.mark.parametrize(
+    ("text", "line", "column"),
+    [
+        (
+            rule("    action: deny\n    when:\n      - arg: a\n        unknown_operator: x\n"),
+            9,
+            9,
+        ),
+        (rule(""), 4, 5),
+        (
+            rule("    action: deny\n    when:\n      - arg: p\n        within: ['${MISSING}/x']\n"),
+            9,
+            9,
+        ),
+    ],
+)
+def test_validation_errors_include_source_location(text: str, line: int, column: int) -> None:
+    with pytest.raises(PolicyError, match=rf"line {line}, column {column}:"):
+        parse_policy(text, env={})
 
 
 def test_defaults() -> None:
@@ -116,13 +149,17 @@ def test_variables_expand_in_string_operands_but_not_regex(tmp_path: Path) -> No
         "      - arg: b\n        equals: '${USER_NAME}'\n"
         "      - arg: c\n        in: ['${USER_NAME}', 3]\n"
         "      - arg: d\n        matches: '^\\$\\{x\\}$'\n"
+        "      - arg: e\n        ends_with: '${SUFFIX}'\n"
     )
-    policy = parse_policy(text, project_dir=str(tmp_path), env={"USER_NAME": "me"})
+    policy = parse_policy(
+        text, project_dir=str(tmp_path), env={"USER_NAME": "me", "SUFFIX": ".pem"}
+    )
     when = policy.rules[0].when
     assert when[0].starts_with == canonical_path(str(tmp_path)) + "/"
     assert when[1].equals == "me"
     assert when[2].in_ == ["me", 3]
     assert when[3].matches == "^\\$\\{x\\}$"
+    assert when[4].ends_with == ".pem"
 
 
 def test_tilde_expands_in_within_and_audit_path(
